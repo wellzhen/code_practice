@@ -6,6 +6,10 @@
 
 int main()
 {
+	char * str = "hello world";
+	//str[1] = 'e';  //错误， 常量不可以修改
+
+	//printf("%s\n", str);
     return 0;
 }
 
