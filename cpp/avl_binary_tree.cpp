@@ -65,13 +65,31 @@ void Avl::preOrder()
 {
 	preOrderTraverse(m_pRoot);
 }
+void Avl::midOrder()
+{
+	midOrderTraverse(m_pRoot);
+}
+void Avl::postOrder()
+{
+	postOrderTraverse(m_pRoot);
+}
 
 void Avl::preOrderTraverse(NODE*& pNode)
 {
 	if (pNode == NULL) {
 		return;
 	}
-	//root
+	printf("%d ", pNode->nData);//print rootNode
+	preOrderTraverse(pNode->pLchild);
+	preOrderTraverse(pNode->pRchild);
+}
 
-
+void Avl::midOrderTraverse(NODE*& pNode)
+{
+	if (pNode == NULL) {
+		return;
+	}
+	preOrderTraverse(pNode->pLchild);
+	printf("%d ", pNode->nData);//print rootNode
+	preOrderTraverse(pNode->pRchild);
 }
