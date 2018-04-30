@@ -1,0 +1,2 @@
+﻿listControl_stuInfo.obj : error LNK2011: 未链接预编译对象；映像可能不能运行
+W:\code_practice\Debug\Win32_notify.exe : fatal error LNK1120: 1 个无法解析的外部命令

@@ -1,0 +1,2 @@
+﻿  client002.cpp
+w:\code_practice\cpp\client002.cpp(32): error C3861: “inet_pton”: 找不到标识符

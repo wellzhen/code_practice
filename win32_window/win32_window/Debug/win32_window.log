@@ -1,0 +1,2 @@
+﻿  stdafx.cpp
+w:\code_practice\win32_window\win32_window\stdafx.cpp(5): fatal error C1854: 无法覆盖在创建对象文件“w:\code_practice\win32_window\win32_window\debug\stdafx.obj”的预编译头过程中形成的信息
