@@ -1,4 +1,0 @@
-﻿  mfc.cpp
-  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
-  mfc_01.vcxproj -> W:\code_practice\Debug\mfc_01.exe
-  mfc_01.vcxproj -> W:\code_practice\Debug\mfc_01.pdb (Full PDB)
