@@ -28,8 +28,11 @@ public:
 	CModuleDialog * m_pModuleDialog;
 	CHeapDialog * m_pHeapDialog;
 	
+	CDialogEx * m_ModuleDialogTest; // test;
 	
 	afx_msg void OnTerminateProcess();
+protected:
+	afx_msg LRESULT OnPidChoosed(WPARAM wParam, LPARAM lParam);
 };
 
 

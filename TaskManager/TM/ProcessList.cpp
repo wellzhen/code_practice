@@ -5,7 +5,7 @@
 #include "TM.h"
 #include "ProcessList.h"
 #include "ThreadDialog.h"
-
+#define WM_PID_CHOOSED  (WM_USER+10)
 
 // CProcessList
 
@@ -27,6 +27,7 @@ BEGIN_MESSAGE_MAP(CProcessList, CListCtrl)
 	ON_COMMAND(ID_SHOW_MODULE, &CProcessList::OnShowModule)
 	ON_COMMAND(ID_SHOW_HEAP, &CProcessList::OnShowHeap)
 	ON_COMMAND(ID_TERMINATE_PROCESS, &CProcessList::OnTerminateProcess)
+	ON_MESSAGE(WM_PID_CHOOSED, &CProcessList::OnPidChoosed)
 END_MESSAGE_MAP()
 
 
@@ -132,23 +133,28 @@ void CProcessList::OnShowthread()
 	//显示线程对话框
 	
 	m_pThreadDialog = new CThreadDialog();
+	
 	m_pThreadDialog->m_pid = m_nChoosedPid;
 	m_pThreadDialog->DoModal();
+	
 	//m_pThreadDialog->Create(IDD_DIALOG_THREAD, this);
 	//m_pThreadDialog->ShowWindow(SW_SHOW);
+
+	
 } 
 
 
 void CProcessList::OnShowModule()
 {
 	// TODO: 在此添加命令处理程序代码
-	//CString strPID;
-	//strPID.Format(L"显示模块列表%d", m_nChoosedPid);
-	//MessageBox(strPID);
 
 	m_pModuleDialog = new CModuleDialog();
+
 	m_pModuleDialog->m_pid = m_nChoosedPid;
-	m_pModuleDialog->DoModal();
+	//m_pModuleDialog->DoModal();
+	m_pModuleDialog->Create(IDD_DIALOG_MODULE, this);
+	//m_pModuleDialog->SendMessage(WM_PID_CHOOSED, 0, 255); //test
+	m_pModuleDialog->ShowWindow(SW_SHOW);
 }
 
 
@@ -173,4 +179,11 @@ void CProcessList::OnTerminateProcess()
 		MessageBox(L"终止进程失败");
 	}
 	
+}
+
+// no use
+afx_msg LRESULT CProcessList::OnPidChoosed(WPARAM wParam, LPARAM lParam)
+{
+	INT a = 33; //test
+	return 0;
 }

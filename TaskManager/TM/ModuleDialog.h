@@ -26,4 +26,6 @@ public:
 	CModuleList m_ModuleList;
 	INT m_pid;
 	virtual BOOL OnInitDialog();
+protected:
+	afx_msg LRESULT OnPidChoosed(WPARAM wParam, LPARAM lParam);
 };

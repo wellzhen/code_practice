@@ -7,6 +7,7 @@
 #include "afxdialogex.h"
 #include <TlHelp32.h>
 
+#define WM_PID_CHOOSED  (WM_USER+10)
 
 // CModuleDialog 对话框
 
@@ -20,6 +21,7 @@ CModuleDialog::CModuleDialog(CWnd* pParent /*=NULL*/)
 
 CModuleDialog::~CModuleDialog()
 {
+	int a = 111; //test
 }
 
 void CModuleDialog::DoDataExchange(CDataExchange* pDX)
@@ -31,6 +33,7 @@ void CModuleDialog::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CModuleDialog, CDialogEx)
 
+	ON_MESSAGE(WM_PID_CHOOSED, &CModuleDialog::OnPidChoosed)
 END_MESSAGE_MAP()
 
 
@@ -65,7 +68,7 @@ BOOL CModuleDialog::OnInitDialog()
 	//遍历模块数据
 	HANDLE  hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, m_pid);
 	if (hSnapshot == INVALID_HANDLE_VALUE) {
-		MessageBox(L"权限不足\n\r\r无法获取模块快照");
+		MessageBox(L"权限不足,无法获取模块快照");
 		return TRUE;
 	}
 	if (!Module32First(hSnapshot, &me32)) {
@@ -89,6 +92,14 @@ BOOL CModuleDialog::OnInitDialog()
 	} while (Module32Next(hSnapshot, &me32));
 	
 	CloseHandle(hSnapshot);
+	//SendMessage(WM_PID_CHOOSED, NULL, 255);
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
+}
+
+
+afx_msg LRESULT CModuleDialog::OnPidChoosed(WPARAM wParam, LPARAM lParam)
+{
+	INT B = 1;
+	return 0;
 }
