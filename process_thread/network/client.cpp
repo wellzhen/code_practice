@@ -7,23 +7,43 @@
 #pragma comment(lib, "ws2_32.lib")
 
 
+DWORD WINAPI RecvProc(LPVOID pParam)
+{
+	SOCKET sock = (SOCKET)pParam;
+	char buf[1024] = {};
+	while (TRUE) {
+		ZeroMemory(buf, 1024);
+		if (!recv(sock, buf, 1024, 0)) {
+			break;
+		}
+		printf("other>> %s\n", buf);
+	}
+	return 0;
+}
 
 int _tmain(int argc, _TCHAR* argv[])
 {
 	WSADATA  wd = {};
-	char buf[100] = {};
 	//初始化WinSock
 	int nInitRes = WSAStartup(MAKEWORD(2, 2), &wd);
 	//创建连接socket
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // 变量名不能是socket
 	//连接
-	sockaddr_in si = {};
-	si.sin_family = AF_INET;
-	si.sin_port = htons(1234);
-	si.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
-	connect(sock, (sockaddr*)&si, sizeof(si));
-	recv(sock, buf, 100, 0);
-	printf("%s\n", buf);
-	system("pause");
+	sockaddr_in serverSi = {};
+	serverSi.sin_family = AF_INET;
+	serverSi.sin_port = htons(1234);
+	serverSi.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+	connect(sock, (sockaddr*)&serverSi, sizeof(serverSi));
+	
+	CreateThread(NULL, 0, RecvProc, (LPVOID)sock, 0, 0);
+	char buf[1024] = {};
+	while (TRUE) {
+		//ZeroMemory(buf, 1024);
+		printf("you>>  \n");
+		scanf_s("%s", buf, 1024);
+		send(sock, buf, strlen(buf), 0);
+	}
+
+
 	return 0;
 }
