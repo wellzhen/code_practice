@@ -1,8 +1,9 @@
 #pragma once
 #include "Data.h"
 #include <vector>
-using namespace std;
+using std::vector;
 #define BUFNAME 50
+
 class CClientSocket
 {
 public:
@@ -54,7 +55,7 @@ public:
 
 private:
 
-	char m_bufRecv[BUFMSG] = {}
+	char m_bufRecv[BUFMSG] = {};
 
 
 };

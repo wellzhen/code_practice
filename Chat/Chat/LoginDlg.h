@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "ClientSocket.h"
 
 
 // CLoingDlg ¶Ô»°¿ò
@@ -32,6 +33,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	CClientSocket m_client;
 	CString m_strName;
 	CString m_strPass;
 	afx_msg void OnClickedButtonLogin();

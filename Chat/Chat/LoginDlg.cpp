@@ -6,6 +6,7 @@
 #include "Chat.h"
 #include "LoginDlg.h"
 #include "afxdialogex.h"
+#include "MainChatDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -180,5 +181,20 @@ void CLoginDlg::OnClickedButtonRegister()
 void CLoginDlg::OnClickedButtonAnonymous()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	MessageBox(L"匿名");
+	if (!m_client.ConnectServer("127.0.0.1", 1234)) {
+		MessageBox(L"连接服务器失败\n", L"Error!", MB_OK | MB_ICONWARNING);
+		return;
+	}
+	//隐藏窗口
+	MessageBox(L"匿名登陆成功,即将进入主界面");
+	//隐藏本窗口
+	ShowWindow(SW_HIDE);
+	//显示匿名聊天窗口
+	CMainChatDlg dlgMainChat(&m_client);
+	dlgMainChat.DoModal();
+	m_client.Close();
+	//退出
+
+	//CLoginDlg::OnClose();
+	CLoginDlg::EndDialog(0);
 }

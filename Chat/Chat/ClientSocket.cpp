@@ -1,5 +1,8 @@
 #include "stdafx.h"
+#include <WinSock2.h>
+#pragma comment(lib,"ws2_32.lib")
 #include "ClientSocket.h"
+
 
 
 CClientSocket::CClientSocket()
@@ -132,23 +135,69 @@ bool CClientSocket::Close()
 }
 
 // recv function
-char* CClientSocket::RecvForAnonymous(){}
-char* CClientSocket::RecvForChat(){}
-char* CClientSocket::RecvForUpdateUserlist(){}
-char* CClientSocket::RecvForOne2One(){}
-char* CClientSocket::RecvForRegister(){}
-char* CClientSocket::RecvForLogin(){}
-char* CClientSocket::RecvForAddFriend(){}
-char* CClientSocket::RecvForSearchUser(){}
-char* CClientSocket::RecvForGetMsgRecord(){}
+char* CClientSocket::RecvForAnonymous()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForChat()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForUpdateUserlist()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForOne2One()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForRegister()
+{	
+	return NULL;
+}
+char* CClientSocket::RecvForLogin()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForAddFriend()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForSearchUser()
+{
+	return NULL;
+}
+char* CClientSocket::RecvForGetMsgRecord()
+{
+	return NULL;
+}
 	
 // send Function
-void CClientSocket::SendForAnonymous(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForChat(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForOne2One(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForRegister(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForLogin(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForAddFriend(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForSearchUser(char* bufSend, DWORD dwLen){}
-void CClientSocket::SendForGetMsgRecord(char* bufSend, DWORD dwLen){}
+void CClientSocket::SendForAnonymous(char* bufSend, DWORD dwLen)
+{
+}
+void CClientSocket::SendForChat(char* bufSend, DWORD dwLen)
+{
 
+}
+void CClientSocket::SendForOne2One(char* bufSend, DWORD dwLen)
+{
+
+}
+void CClientSocket::SendForRegister(char* bufSend, DWORD dwLen)
+{
+
+}
+void CClientSocket::SendForLogin(char* bufSend, DWORD dwLen)
+{
+
+}
+void CClientSocket::SendForAddFriend(char* bufSend, DWORD dwLen)
+{
+}
+void CClientSocket::SendForSearchUser(char* bufSend, DWORD dwLen)
+{
+}
+void CClientSocket::SendForGetMsgRecord(char* bufSend, DWORD dwLen)
+{
+}
