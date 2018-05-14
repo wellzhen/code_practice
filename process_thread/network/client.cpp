@@ -3,10 +3,17 @@
 #include <WinSock2.h>
 #include <Windows.h>
 
-
 #pragma comment(lib, "ws2_32.lib")
 
+//客户端数据包结构体
+struct ClientDataPack {
+	int errNo;
+	int msgType;
 
+
+	
+
+};
 DWORD WINAPI RecvProc(LPVOID pParam)
 {
 	SOCKET sock = (SOCKET)pParam;
