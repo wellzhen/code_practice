@@ -175,6 +175,11 @@ char* CClientSocket::RecvForGetMsgRecord()
 // send Function
 void CClientSocket::SendForAnonymous(char* bufSend, DWORD dwLen)
 {
+	CHATSEND ct = { ANONYMOUS };
+	//ÄäÃû ³¤¶È+ êÇ³Æ
+	strcpy_s(ct.m_content.chat.buf, bufSend);
+	ct.m_content.chat.dwLen = dwLen;
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForChat(char* bufSend, DWORD dwLen)
 {

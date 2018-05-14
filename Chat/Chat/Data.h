@@ -3,6 +3,9 @@
 //协议
 #define BUFMSG 2048 //一次性接收的最大字节数
 
+//自定义消息
+#define WM_MYSOCKET (WM_USER + 100)
+
 //头部: 通讯目的, 包括匿名登陆, 聊天, 1v1, 注册, 登陆, 添加好友, 搜索好友, 文件传输, 查看聊天记录
 enum CHATPURPOSE {
 	ANONYMOUS = 1,
@@ -95,6 +98,7 @@ typedef struct _CHATSEND {
 		CHATUPDATEUSER upd; //更新用户列表
 	} m_content;
 } CHATSEND;
+
 
 
 

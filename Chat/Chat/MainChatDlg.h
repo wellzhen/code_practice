@@ -24,6 +24,26 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
 	DECLARE_MESSAGE_MAP()
+protected:
+	// socket托管
+	// ......
+
+	void InsertOrDeleteUser(CHATUPDATEUSER &objUpdate);
+	void ChatForOne2One(CHATONE2ONE &objOne2One);
+
+public:
+	virtual BOOL OnInitDialog();
+	//点击发送消息
+	afx_msg void OnClickedButtonSendWord();
+	//双击在线用户列表的用户, 1V1聊天
+	afx_msg void OnDblclkListUserOnline(NMHDR *pNMHDR, LRESULT *pResult);
+	//右键菜单窗口
+	//右键菜单消息: 添加好友
+	//右键菜单消息: 搜索用户
+	//右键菜单消息: 查询聊天记录
+	//定时器消息: 用于等待获取消息记录完毕
+
+
 public:
 	//登陆聊天还是匿名聊天
 	BOOL m_bLogin = FALSE;
@@ -44,7 +64,6 @@ public:
 	DWORD m_dwNameIndex = 0;
 	//聊天记录窗口指针
 	//CDlgRecord* m_pDlgRecord = nullptr;
-
 
 
 };
