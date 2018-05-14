@@ -241,3 +241,10 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 .vs
+
+# self
+*.exe
+*.ilk
+*.pdb
+*.VC.db
+*.suo
