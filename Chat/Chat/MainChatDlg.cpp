@@ -6,6 +6,7 @@
 #include "MainChatDlg.h"
 #include "afxdialogex.h"
 #include "ClientSocket.h"
+#include "WhisperDlg.h"
 
 
 // CMainChatDlg 对话框
@@ -42,6 +43,7 @@ void CMainChatDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CMainChatDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_SEND_WORD, &CMainChatDlg::OnClickedButtonSendWord)
 	ON_NOTIFY(NM_DBLCLK, IDC_LIST_USER_ONLINE, &CMainChatDlg::OnDblclkListUserOnline)
+	ON_MESSAGE(WM_MYSOCKET, &CMainChatDlg::OnMysocket)
 END_MESSAGE_MAP()
 
 
@@ -80,6 +82,21 @@ BOOL CMainChatDlg::OnInitDialog()
 void CMainChatDlg::OnClickedButtonSendWord()
 {
 	// TODO: 在此添加控件通知处理程序代码
+	UpdateData(TRUE);
+	if (m_strChatSend.IsEmpty()) {
+		//发送框的内容为空
+		return;
+	}
+	CStringA str = CW2A(m_strChatSend.GetBuffer(), CP_THREAD_ACP);
+	m_pClient->Send(CHAT, str.GetBuffer(), str.GetLength() + 1);
+	//显示在自己的对话框上
+	m_strChatShow += "你说 : ";
+	m_strChatShow += m_strChatSend;
+	m_strChatShow += "\r\n";
+	//发送消息置空
+	m_strChatSend.Empty();
+	UpdateData(FALSE);
+
 }
 
 
@@ -88,4 +105,128 @@ void CMainChatDlg::OnDblclkListUserOnline(NMHDR *pNMHDR, LRESULT *pResult)
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 	// TODO: 在此添加控件通知处理程序代码
 	*pResult = 0;
+
+	if (pNMItemActivate->iSubItem == -1) {
+		return;
+	}
+	//新建1v1聊天对话框
+	CWhisperDlg * pDlg = new CWhisperDlg;
+	pDlg->Create(IDD_WHISPER_DIALOG, this);
+	//设置窗口标题为要聊天的目标用户名
+	CString title = m_listUserName.GetItemText(pNMItemActivate->iSubItem, 0);
+	pDlg->SetWindowTextW(title.GetBuffer());
+	//把该私聊窗口添加到自己的私聊Map表中
+	m_map[title] = pDlg;
+	pDlg->ShowWindow(SW_SHOW);
+
+}
+
+
+afx_msg LRESULT CMainChatDlg::OnMysocket(WPARAM wParam, LPARAM lParam)
+{
+	//wparam是socket
+	//lparam   低word: 事件   高word: 错误码
+	SOCKET s = wParam;
+	WORD wEvent = WSAGETSELECTEVENT(lParam);
+	WORD wErrorCode = WSAGETSELECTERROR(lParam);
+	//先判断是否有网络错误事件发生, 有则跳过
+	if (wErrorCode) {
+		exit(0);
+		MessageBox(L"网络错误");
+		CDialogEx::OnClose();
+	}
+	switch(wEvent) {
+	case FD_READ:
+	{
+		char* szRecv = m_pClient->Recv();
+		if (szRecv == nullptr) {
+			if (m_pClient->m_pObjUpdate) {
+				//更新用户列表, 判断用户是加入还是退出, RecvForUpdateUserlist函数返回处理
+				InsertOrDeleteUser(*m_pClient->m_pObjUpdate);
+				delete  m_pClient->m_pObjUpdate;
+				m_pClient->m_pObjUpdate = nullptr;
+			}
+			else if (m_pClient->m_pObjOne2One) {
+				// 1V1聊天用到, RecvForOne2One函数返回处理
+				ChatForOne2One(*m_pClient->m_pObjOne2One);
+				delete m_pClient->m_pObjOne2One;
+				m_pClient->m_pObjOne2One = nullptr;
+			}
+			return 0;
+		}
+		UpdateData(TRUE);
+		m_strChatShow += szRecv;
+		m_strChatShow += "\r\n";
+		UpdateData(FALSE);
+	}
+	default:
+		break;
+	}
+	return 0;
+}
+
+
+
+void CMainChatDlg::InsertOrDeleteUser(CHATUPDATEUSER &objUpdate)
+{
+		
+	char * name = objUpdate.buf;
+	CString nameInfo = CA2W(name);
+	if (objUpdate.bAdd) {
+		m_listUserName.InsertItem(0, nameInfo);
+	}
+	else {
+		int rowCount = m_listUserName.GetItemCount();
+		for (int i = 0; i < rowCount; i++) {
+			CString name = m_listUserName.GetItemText(i, 0);
+			if (name == nameInfo) {
+				m_listUserName.DeleteItem(i);
+				break;
+			}
+		}
+	}
+}
+void CMainChatDlg::ChatForOne2One(CHATONE2ONE &objOne2One)
+{
+	CString strName(objOne2One.szName);
+	CString strContent(objOne2One.szContent);
+	if (m_map.find(strName) == m_map.end()) {
+		//创建私聊窗口
+		CWhisperDlg  *pDlg = new CWhisperDlg;
+		pDlg->Create(IDD_WHISPER_DIALOG, this);
+		pDlg->SetWindowTextW(strName.GetBuffer());
+		m_map[strName] = pDlg;
+		pDlg->m_strShow += strName + L" : " + strContent;
+		pDlg->m_strShow += "\r\n";
+		pDlg->UpdateData(FALSE);
+		pDlg->ShowWindow(SW_SHOW);
+	}
+	else {
+		CWhisperDlg *pDlg = (CWhisperDlg*)m_map[strName];
+		pDlg->UpdateData(TRUE);
+		pDlg->m_strShow += strName + " : " + strContent;
+		pDlg->m_strShow += "\r\n";
+		pDlg->UpdateData(FALSE);
+		pDlg->ShowWindow(SW_SHOW);
+
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+void CMainChatDlg::OnOK()
+{
+	// TODO: 在此添加专用代码和/或调用基类
+
+	//CDialogEx::OnOK();
 }

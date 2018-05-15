@@ -9,7 +9,7 @@
 //头部: 通讯目的, 包括匿名登陆, 聊天, 1v1, 注册, 登陆, 添加好友, 搜索好友, 文件传输, 查看聊天记录
 enum CHATPURPOSE {
 	ANONYMOUS = 1,
-	CHAT,
+	CHAT,//群聊
 	ONE2ONE,
 	REGISTER,
 	LOGIN,

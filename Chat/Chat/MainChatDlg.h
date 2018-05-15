@@ -26,8 +26,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 protected:
 	// socket托管
-	// ......
-
+	afx_msg LRESULT OnMysocket(WPARAM wParam, LPARAM lParam);
 	void InsertOrDeleteUser(CHATUPDATEUSER &objUpdate);
 	void ChatForOne2One(CHATONE2ONE &objOne2One);
 
@@ -65,5 +64,5 @@ public:
 	//聊天记录窗口指针
 	//CDlgRecord* m_pDlgRecord = nullptr;
 
-
+	virtual void OnOK();
 };

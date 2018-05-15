@@ -7,6 +7,18 @@
 
 CClientSocket::CClientSocket()
 {
+	srand((int)time(NULL));
+	char name[15];
+	name[0] = 'a';
+	name[1] = 'n';
+	name[2] = 'o';
+	name[3] = 'n';
+	name[4] = 'y';
+	name[5] = '_';
+	for (int i = 6; i < 15; i++) {
+		name[i] = rand() % 26 + 'a';
+	}
+	memcpy_s(m_szName, 15, name, 15);
 }
 
 
@@ -87,6 +99,8 @@ char* CClientSocket::Recv()
 	case UPDATEUSER:
 		return RecvForUpdateUserlist();
 		break;
+	default:
+		OutputDebugString(L"无效的信息类型");
 	}
 	return nullptr;
 }
@@ -137,18 +151,26 @@ bool CClientSocket::Close()
 // recv function
 char* CClientSocket::RecvForAnonymous()
 {
-	return NULL;
+	sprintf_s(m_bufRecv, BUFMSG, "%s 加入聊天室!\n", m_pObjChatRecv->m_content.any.buf);
+	return m_bufRecv;
 }
+
 char* CClientSocket::RecvForChat()
 {
-	return NULL;
+	strcpy_s(m_bufRecv, m_pObjChatRecv->m_content.chat.buf);
+	return m_bufRecv;
 }
 char* CClientSocket::RecvForUpdateUserlist()
 {
-	return NULL;
+	m_pObjUpdate = new CHATUPDATEUSER;
+	memcpy_s(m_pObjUpdate, sizeof(CHATUPDATEUSER), &m_pObjChatRecv->m_content.upd, sizeof(CHATUPDATEUSER));
+	return nullptr;
 }
 char* CClientSocket::RecvForOne2One()
 {
+	//新用户加入, 更新到用户列表窗口
+	m_pObjOne2One = new CHATONE2ONE;
+	memcpy_s(m_pObjOne2One, sizeof(CHATONE2ONE), &m_pObjChatRecv->m_content.o2o, sizeof(CHATONE2ONE));
 	return NULL;
 }
 char* CClientSocket::RecvForRegister()
@@ -183,10 +205,23 @@ void CClientSocket::SendForAnonymous(char* bufSend, DWORD dwLen)
 }
 void CClientSocket::SendForChat(char* bufSend, DWORD dwLen)
 {
-
+	CHATSEND ct = { CHAT };
+	//聊天 长度+姓名 : 内容
+	strcpy_s(ct.m_content.chat.buf, m_szName);
+	strcat_s(ct.m_content.chat.buf, " : ");
+	strcat_s(ct.m_content.chat.buf, bufSend);
+	ct.m_content.chat.dwLen = strlen(ct.m_content.chat.buf) + 1;
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForOne2One(char* bufSend, DWORD dwLen)
 {
+	CHATSEND ct = { ONE2ONE };
+	// 姓名 : 内容
+	char* nextToken = nullptr;
+	char* szContext = strtok_s(bufSend, " : ", &nextToken);
+	memcpy_s(ct.m_content.o2o.szName, nextToken - bufSend, bufSend, nextToken - bufSend);
+	memcpy_s(ct.m_content.o2o.szContent, strlen(nextToken), nextToken, strlen(nextToken));
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 
 }
 void CClientSocket::SendForRegister(char* bufSend, DWORD dwLen)

@@ -42,6 +42,9 @@
     <ClInclude Include="MainChatDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="WhisperDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chat.cpp">
@@ -60,6 +63,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MainChatDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WhisperDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
