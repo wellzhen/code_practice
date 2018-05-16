@@ -175,11 +175,19 @@ char* CClientSocket::RecvForOne2One()
 }
 char* CClientSocket::RecvForRegister()
 {	
+	if (!strcmp(m_pObjChatRecv->m_content.login.szName, "注册成功!")) {
+		return "注册成功";
+	}
 	return NULL;
 }
 char* CClientSocket::RecvForLogin()
 {
-	return NULL;
+	if (!strcmp(m_pObjChatRecv->m_content.login.szName, "登陆成功!")) {
+		return "登陆成功";
+	}
+	else {
+		return nullptr;
+	}
 }
 char* CClientSocket::RecvForAddFriend()
 {
@@ -226,11 +234,21 @@ void CClientSocket::SendForOne2One(char* bufSend, DWORD dwLen)
 }
 void CClientSocket::SendForRegister(char* bufSend, DWORD dwLen)
 {
-
+	CHATSEND ct = { REGISTER };
+	char* pwd = nullptr;
+	strtok_s(bufSend, ":", &pwd);
+	memcpy_s(ct.m_content.reg.szName, pwd - bufSend, bufSend, pwd - bufSend);
+	memcpy_s(ct.m_content.reg.szPwd, strlen(pwd), pwd, strlen(pwd));
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForLogin(char* bufSend, DWORD dwLen)
 {
-
+	CHATSEND ct = { LOGIN };
+	char* pwd = nullptr;
+	strtok_s(bufSend, ":", &pwd);
+	memcpy_s(ct.m_content.login.szName, pwd - bufSend, bufSend, pwd - bufSend);
+	memcpy_s(ct.m_content.login.szPwd, strlen(pwd),pwd ,strlen(pwd));
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForAddFriend(char* bufSend, DWORD dwLen)
 {

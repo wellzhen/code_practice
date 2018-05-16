@@ -167,15 +167,80 @@ HCURSOR CLoginDlg::OnQueryDragIcon()
 void CLoginDlg::OnClickedButtonLogin()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	MessageBox(L"登陆");
 	//初始化用户名***
+	UpdateData(TRUE);
+	if (m_strName.IsEmpty()) {
+		MessageBox(L"请输入用户名");
+		return;
+	}
+	else if (m_strPass.IsEmpty()) {
+		MessageBox(L"请输入登陆密码");
+		return;
+	}
+	if (!m_client.ConnectServer(SERVERIP, SERVERPORT)) {
+		MessageBox(L"连接服务器失败");
+		return;
+	}
+	//登陆用户名和密码
+	CString strSend = m_strName;
+	strSend += L":" + m_strPass;
+	CStringA str = CW2A(strSend.GetBuffer(), CP_THREAD_ACP);
+	m_client.Send(LOGIN, str.GetBuffer(), str.GetLength() + 1);
+	char* ret = m_client.Recv();
+	if (ret == nullptr) {
+		MessageBox(L"登陆失败");
+		m_client.Close();
+		return;
+	}
+	//登陆成功
+	//设置当前登陆用户名, 否则显示随机用户名
+	CStringA strShowName = CW2A(m_strName.GetBuffer(), CP_THREAD_ACP);
+	strcpy_s(m_client.m_szName, strShowName.GetBuffer());
+	//隐藏登陆窗口
+	ShowWindow(SW_HIDE);
+	//显示聊天窗口
+	CMainChatDlg dlgChat(&m_client);
+	dlgChat.m_bLogin = TRUE;
+	dlgChat.DoModal();
+	m_client.Close();
+	CLoginDlg::EndDialog(0);
+
 }
 
 
 void CLoginDlg::OnClickedButtonRegister()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	MessageBox(L"注册");
+	UpdateData(TRUE);
+	if (m_strName.IsEmpty()) {
+		MessageBox(L"用户名不能为空");
+		return;
+	}
+	else if (m_strPass.IsEmpty()) {
+		MessageBox(L"密码不能为空");
+		return;
+	}
+	if (!m_client.ConnectServer(SERVERIP, SERVERPORT)) {
+		MessageBox(L"连接服务器失败");
+		return;
+	}
+	//注册用户名和密码
+	CString strSend = m_strName;
+	strSend += L":" + m_strPass;
+	CStringA str = CW2A(strSend.GetBuffer(), CP_THREAD_ACP);
+	int testLen = str.GetLength();
+	m_client.Send(REGISTER, str.GetBuffer(), str.GetLength() + 1);
+	//直接等待注册结果
+	char* ret = m_client.Recv();
+	if (ret == nullptr) {
+		MessageBox(L"注册失败");
+	}
+	else {
+		MessageBox(L"注册成功, 请登陆");
+	}
+	
+	m_client.Close();
+	return;
 }
 
 
@@ -196,6 +261,6 @@ void CLoginDlg::OnClickedButtonAnonymous()
 	m_client.Close();
 	//退出
 
-	//CLoginDlg::OnClose();
-	CLoginDlg::EndDialog(0);
+	//CLoginDlg::OnClose(); //无法退出进程
+	CLoginDlg::EndDialog(0); //直接退出进程
 }

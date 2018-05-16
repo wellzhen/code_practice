@@ -2,6 +2,8 @@
 
 //协议
 #define BUFMSG 2048 //一次性接收的最大字节数
+#define SERVERIP  "127.0.0.1"
+#define SERVERPORT  1234
 
 //自定义消息
 #define WM_MYSOCKET (WM_USER + 100)
