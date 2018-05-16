@@ -45,6 +45,12 @@
     <ClInclude Include="WhisperDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SearchDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RecordDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Chat.cpp">
@@ -66,6 +72,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="WhisperDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SearchDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="RecordDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -190,7 +190,9 @@
     <ClInclude Include="Data.h" />
     <ClInclude Include="LoginDlg.h" />
     <ClInclude Include="MainChatDlg.h" />
+    <ClInclude Include="RecordDlg.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SearchDlg.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WhisperDlg.h" />
@@ -201,6 +203,8 @@
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="LoginDlg.cpp" />
     <ClCompile Include="MainChatDlg.cpp" />
+    <ClCompile Include="RecordDlg.cpp" />
+    <ClCompile Include="SearchDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

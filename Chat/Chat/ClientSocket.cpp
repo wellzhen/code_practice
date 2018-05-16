@@ -191,14 +191,22 @@ char* CClientSocket::RecvForLogin()
 }
 char* CClientSocket::RecvForAddFriend()
 {
+	MessageBoxA(NULL,m_pObjChatRecv->m_content.adf.szName, "添加好友", MB_OK);
 	return NULL;
 }
 char* CClientSocket::RecvForSearchUser()
 {
-	return NULL;
+	MessageBoxA(NULL, m_pObjChatRecv->m_content.seu.szName, "搜索用户", MB_OK);
+	return nullptr;
 }
 char* CClientSocket::RecvForGetMsgRecord()
 {
+	if (!strcmp(m_pObjChatRecv->m_content.rec.szFrom, "---end---")) {
+		SetEvent(m_hEvent);
+	}
+	else {
+		m_vecMsgRecord.push_back(m_pObjChatRecv->m_content.rec);
+	}
 	return NULL;
 }
 	
@@ -252,10 +260,22 @@ void CClientSocket::SendForLogin(char* bufSend, DWORD dwLen)
 }
 void CClientSocket::SendForAddFriend(char* bufSend, DWORD dwLen)
 {
+	CHATSEND ct = { ADDFRIEND };
+	char* frd = nullptr;
+	//构造内容   当前用户:目标好友
+	strtok_s(bufSend, ":", &frd);
+	memcpy_s(ct.m_content.adf.szName, frd - bufSend, bufSend, frd - bufSend);
+	memcpy_s(ct.m_content.adf.szFrd, strlen(frd), frd, strlen(frd));
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForSearchUser(char* bufSend, DWORD dwLen)
 {
+	CHATSEND ct = { SEARCHUSER };
+	memcpy_s(ct.m_content.seu.szName, dwLen, bufSend, dwLen);
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForGetMsgRecord(char* bufSend, DWORD dwLen)
 {
+	CHATSEND ct = { MSGRECORD };
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }

@@ -2,6 +2,7 @@
 #include "afxcmn.h"
 #include <map>
 #include "ClientSocket.h"
+#include "RecordDlg.h"
 using std::map;
 
 // CMainChatDlg 对话框
@@ -62,7 +63,12 @@ public:
 	//鼠标点击在线用户列表时的索引值
 	DWORD m_dwNameIndex = 0;
 	//聊天记录窗口指针
-	//CDlgRecord* m_pDlgRecord = nullptr;
+	CRecordDlg* m_pDlgRecord = nullptr;
 
 	virtual void OnOK();
+	afx_msg void OnRclickListUserOnline(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnAddFriend();
+	afx_msg void OnSearchFriend();
+	afx_msg void OnQueryRecord();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
