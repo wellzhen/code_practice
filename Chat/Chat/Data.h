@@ -66,7 +66,9 @@ typedef struct _CHATSEARCHUSER {
 
 //文件传输结构体
 typedef struct _CHATFILETRANS {
-
+	CHAR  szName[48];
+	DWORD dwLen;
+	CHAR szContent[1024];
 } CHATFILETRANS;
 
 //查看聊天记录结构体

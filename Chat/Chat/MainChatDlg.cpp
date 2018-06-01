@@ -95,7 +95,7 @@ void CMainChatDlg::OnClickedButtonSendWord()
 	CStringA str = CW2A(m_strChatSend.GetBuffer(), CP_THREAD_ACP);
 	m_pClient->Send(CHAT, str.GetBuffer(), str.GetLength() + 1);
 	//显示在自己的对话框上
-	m_strChatShow += "你说 : ";
+	m_strChatShow += "[ 你 ] : ";
 	m_strChatShow += m_strChatSend;
 	m_strChatShow += "\r\n";
 	//发送消息置空
@@ -120,16 +120,21 @@ void CMainChatDlg::OnDblclkListUserOnline(NMHDR *pNMHDR, LRESULT *pResult)
 	int nIndex = m_listUserName.GetNextSelectedItem(pstion);
 	CString test;
 	test.Format(L"%d  %d", rowCount, nIndex);
-	MessageBox(test);
+	//MessageBox(test);
 	if (nIndex > rowCount - 1) {
 		//MessageBox(L"out index");
 		return;
 	}
+	CString title = m_listUserName.GetItemText(nIndex, 0);
+	if (title == m_pClient->m_szName) {
+		MessageBox(L"不能与自己聊天");
+		return;
+	}
+
 	//新建1v1聊天对话框
 	CWhisperDlg * pDlg = new CWhisperDlg;
 	pDlg->Create(IDD_WHISPER_DIALOG, this);
 	//设置窗口标题为要聊天的目标用户名
-	CString title = m_listUserName.GetItemText(nIndex, 0);
 	pDlg->SetWindowTextW(title.GetBuffer());
 	//把该私聊窗口添加到自己的私聊Map表中
 	m_map[title] = pDlg;
@@ -167,6 +172,12 @@ afx_msg LRESULT CMainChatDlg::OnMysocket(WPARAM wParam, LPARAM lParam)
 				ChatForOne2One(*m_pClient->m_pObjOne2One);
 				delete m_pClient->m_pObjOne2One;
 				m_pClient->m_pObjOne2One = nullptr;
+			}
+			else if (m_pClient->m_pObjFileTrans) {
+				//文件传输用到
+				ChatForFileRecv(*m_pClient->m_pObjFileTrans);
+				delete m_pClient->m_pObjFileTrans;
+				m_pClient->m_pObjFileTrans = nullptr;
 			}
 			return 0;
 		}
@@ -213,19 +224,74 @@ void CMainChatDlg::ChatForOne2One(CHATONE2ONE &objOne2One)
 		pDlg->SetWindowTextW(strName.GetBuffer());
 		m_map[strName] = pDlg;
 		pDlg->m_strShow += strName + L" : " + strContent;
-		pDlg->m_strShow += "\r\n";
+		pDlg->m_strShow += L"\r\n";
 		pDlg->UpdateData(FALSE);
 		pDlg->ShowWindow(SW_SHOW);
 	}
 	else {
 		CWhisperDlg *pDlg = (CWhisperDlg*)m_map[strName];
 		pDlg->UpdateData(TRUE);
-		pDlg->m_strShow += strName + " : " + strContent;
-		pDlg->m_strShow += "\r\n";
+		pDlg->m_strShow += strName + L" : " + strContent;
+		pDlg->m_strShow += L"\r\n";
 		pDlg->UpdateData(FALSE);
 		pDlg->ShowWindow(SW_SHOW);
 
 
+	}
+}
+//收文件
+void CMainChatDlg::ChatForFileRecv(CHATFILETRANS &objFileTrans)
+{
+
+	CString strName(objFileTrans.szName);
+	CString strContent(objFileTrans.szContent);
+	int ContentSize = objFileTrans.dwLen;
+	//接收文件
+	CWhisperDlg  *pDlg = NULL;
+	if (m_map.find(strName) == m_map.end()) {
+		//创建私聊窗口
+		pDlg = new CWhisperDlg;
+		pDlg->Create(IDD_WHISPER_DIALOG, this);
+		pDlg->SetWindowTextW(strName.GetBuffer());
+		m_map[strName] = pDlg;
+	}
+	else {
+		pDlg = (CWhisperDlg*)m_map[strName];
+	}
+	pDlg->UpdateData(TRUE);
+	pDlg->ShowWindow(SW_SHOW);
+	//第一个接收?
+	CStringA strGet = CW2A(strContent.GetBuffer(), CP_THREAD_ACP);
+	if (strcmp(strGet, "startfile") == 0 ){
+		//第一次接收文件提醒	
+		pDlg->m_strShow += L"                    开始接收文件";
+		pDlg->UpdateData(FALSE);
+		m_vecFileRecord.clear();
+	}
+	else if(strcmp(strGet, "endfile") == 0 ){
+		//接收完成
+		pDlg->m_strShow += L"\r\n                 文件接收完成, 开始写入磁盘 \r\n";
+		pDlg->UpdateData(FALSE);
+
+		HANDLE hFileRecv = CreateFile(L".\\a.png", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		//循环写入磁盘
+		DWORD WrittenSize;
+		for (DWORD i = 0; i < m_vecFileRecord.size(); i++) {
+			::WriteFile(hFileRecv, m_vecFileRecord[i].szContent, m_vecFileRecord[i].dwLen, &WrittenSize, NULL);
+			pDlg->m_strShow += L"*";
+			pDlg->UpdateData(false);
+		}
+		pDlg->m_strShow += L"文件已经生成\r\n";
+		pDlg->UpdateData(false);
+		//关闭文件句柄
+		CloseHandle(hFileRecv);
+		m_vecFileRecord.clear();
+	}
+	else {
+		//保存文件内容
+		m_vecFileRecord.push_back(objFileTrans);
+		pDlg->m_strShow += L".";
+		pDlg->UpdateData(false);
 	}
 }
 
@@ -286,7 +352,7 @@ void CMainChatDlg::OnSearchFriend()
 	CSearchDlg dlgSearch;
 	dlgSearch.DoModal();
 	if (dlgSearch.m_strSearch.IsEmpty()) {
-		MessageBox(L"搜索内容为空2");
+		//MessageBox(L"搜索内容为空2");
 		return;
 	}
 	//MessageBox(dlgSearch.m_strSearch);

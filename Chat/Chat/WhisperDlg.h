@@ -28,4 +28,5 @@ public:
 	afx_msg void OnClose();
 	afx_msg void OnClickedButtonWhisperSend();
 	virtual void OnOK();
+	afx_msg void OnBnClickedBtnSendFile();
 };

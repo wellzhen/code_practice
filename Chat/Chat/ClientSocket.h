@@ -27,6 +27,7 @@ private:
 	char* RecvForAddFriend();
 	char* RecvForSearchUser();
 	char* RecvForGetMsgRecord();
+	char* RecvForFileTrans();
 	
 	// send Function
 	void SendForAnonymous(char* bufSend, DWORD dwLen);
@@ -37,6 +38,7 @@ private:
 	void SendForAddFriend(char* bufSend, DWORD dwLen);
 	void SendForSearchUser(char* bufSend, DWORD dwLen);
 	void SendForGetMsgRecord(char* bufSend, DWORD dwLen);
+	void SendForFileTrans(char* bufSend, DWORD dwLen);
 
 public:
 	//保存聊天记录
@@ -48,10 +50,14 @@ public:
 	CHATUPDATEUSER* m_pObjUpdate = nullptr;
 	// 1v1聊天
 	CHATONE2ONE* m_pObjOne2One = nullptr;
+	//文件传输
+	CHATFILETRANS* m_pObjFileTrans = nullptr;
 	//当前客户端的用户名
 	char m_szName[BUFNAME] = {};
 	//收信息的时候用
 	CHATSEND* m_pObjChatRecv;
+	//文件
+	//CHATSEND* m_pObjFileRecv;
 
 private:
 

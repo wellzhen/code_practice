@@ -91,7 +91,7 @@ char* CClientSocket::Recv()
 		return RecvForSearchUser();
 		break;
 	case FILETRANS:
-		//
+		return RecvForFileTrans();
 		break;
 	case MSGRECORD:
 		return RecvForGetMsgRecord();
@@ -130,7 +130,7 @@ bool CClientSocket::Send(CHATPURPOSE purpose, char* bufSend, DWORD dwLen)
 		SendForSearchUser(bufSend, dwLen);
 		break;
 	case FILETRANS:
-		//
+	    SendForFileTrans(bufSend, dwLen);
 		break;
 	case MSGRECORD:
 		SendForGetMsgRecord(bufSend, dwLen);
@@ -151,12 +151,17 @@ bool CClientSocket::Close()
 // recv function
 char* CClientSocket::RecvForAnonymous()
 {
-	sprintf_s(m_bufRecv, BUFMSG, "%s 加入聊天室!\n", m_pObjChatRecv->m_content.any.buf);
+	sprintf_s(m_bufRecv, BUFMSG, "                                              \
+		%s 加入聊天室\n", m_pObjChatRecv->m_content.any.buf);
 	return m_bufRecv;
 }
 
 char* CClientSocket::RecvForChat()
 {
+	//解密
+	for (int i = 0; i < m_pObjChatRecv->m_content.chat.dwLen; i++) {
+		m_pObjChatRecv->m_content.chat.buf[i] ^= 15;
+	}
 	strcpy_s(m_bufRecv, m_pObjChatRecv->m_content.chat.buf);
 	return m_bufRecv;
 }
@@ -209,6 +214,13 @@ char* CClientSocket::RecvForGetMsgRecord()
 	}
 	return NULL;
 }
+
+char* CClientSocket::RecvForFileTrans()
+{
+	m_pObjFileTrans = new CHATFILETRANS;
+	memcpy_s(m_pObjFileTrans, sizeof(CHATFILETRANS), &m_pObjChatRecv->m_content.trs, sizeof(CHATFILETRANS));
+	return NULL;
+}
 	
 // send Function
 void CClientSocket::SendForAnonymous(char* bufSend, DWORD dwLen)
@@ -227,6 +239,10 @@ void CClientSocket::SendForChat(char* bufSend, DWORD dwLen)
 	strcat_s(ct.m_content.chat.buf, " : ");
 	strcat_s(ct.m_content.chat.buf, bufSend);
 	ct.m_content.chat.dwLen = strlen(ct.m_content.chat.buf) + 1;
+	//加密
+	for (int i = 0; i < ct.m_content.any.dwLen; i++) {
+		ct.m_content.chat.buf[i] ^= 15;
+	}
 	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }
 void CClientSocket::SendForOne2One(char* bufSend, DWORD dwLen)
@@ -277,5 +293,16 @@ void CClientSocket::SendForSearchUser(char* bufSend, DWORD dwLen)
 void CClientSocket::SendForGetMsgRecord(char* bufSend, DWORD dwLen)
 {
 	CHATSEND ct = { MSGRECORD };
+	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
+}
+void CClientSocket::SendForFileTrans(char* bufSend, DWORD dwLen) 
+{
+	CHATSEND ct = { FILETRANS };
+	char* content = nullptr;
+	//构造内容   好友:内容
+	strtok_s(bufSend, ":", &content);
+	memcpy_s(ct.m_content.trs.szName, content - bufSend, bufSend, content - bufSend);
+	memcpy_s(ct.m_content.trs.szContent, dwLen, content, dwLen);
+	ct.m_content.trs.dwLen = dwLen;
 	send(m_sClient, (char*)&ct, sizeof(ct), NULL);
 }

@@ -1,9 +1,11 @@
 #pragma once
 #include "afxcmn.h"
 #include <map>
+#include <vector>
 #include "ClientSocket.h"
 #include "RecordDlg.h"
 using std::map;
+using std::vector;
 
 // CMainChatDlg 对话框
 
@@ -30,6 +32,7 @@ protected:
 	afx_msg LRESULT OnMysocket(WPARAM wParam, LPARAM lParam);
 	void InsertOrDeleteUser(CHATUPDATEUSER &objUpdate);
 	void ChatForOne2One(CHATONE2ONE &objOne2One);
+	void ChatForFileRecv(CHATFILETRANS &objFileTrans);
 
 public:
 	virtual BOOL OnInitDialog();
@@ -64,6 +67,8 @@ public:
 	DWORD m_dwNameIndex = 0;
 	//聊天记录窗口指针
 	CRecordDlg* m_pDlgRecord = nullptr;
+	//保存接收到的文件信息
+	vector<CHATFILETRANS> m_vecFileRecord;
 
 	virtual void OnOK();
 	afx_msg void OnRclickListUserOnline(NMHDR *pNMHDR, LRESULT *pResult);

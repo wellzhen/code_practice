@@ -42,7 +42,7 @@ void CSearchDlg::OnClickedButtonSearchUser()
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);
 	if (m_strSearch.IsEmpty()) {
-		MessageBox(L"搜索内容为空");
+		//MessageBox(L"搜索内容为空");
 		return;
 	}
 	CDialogEx::OnOK();
