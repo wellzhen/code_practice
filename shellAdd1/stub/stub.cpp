@@ -8,6 +8,9 @@
 #pragma comment(linker, "/merge:.data=.text")
 #pragma comment(linker, "/merge:.rdata=.text")
 #pragma comment(linker, "/section:.text,REW")
+//密码弹框
+void SDK();
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 typedef void* (WINAPI* FnGetProcAddress)(HMODULE, LPCSTR);
 typedef HMODULE(WINAPI* FnLoadLibraryA)(LPCSTR);
@@ -15,16 +18,18 @@ typedef HMODULE(WINAPI* FnGetModuleHandleA)(LPCSTR);
 typedef LPVOID (WINAPI* FnVirtualAlloc)(LPVOID, SIZE_T, DWORD, DWORD);
 typedef BOOL (WINAPI* FnVirtualProtect)(LPVOID, SIZE_T, DWORD, PDWORD);
 
+
 typedef void (WINAPI *FnPostQuitMessage)(int);
 typedef BOOL(WINAPI *FnShowWindow)(HWND, int);
 typedef BOOL(WINAPI *FnTranslateMessage)(CONST MSG *);
 typedef LRESULT(WINAPI *FnDispatchMessageA)(CONST MSG *);
-typedef ATOM (WINAPI* FnRegisterClassA)(const WNDCLASS *);
-typedef HWND (WINAPI* FnCreateWindowExA)(DWORD,LPCTSTR,LPCTSTR,DWORD,int,int,int,int,HWND,HMENU,HINSTANCE,LPVOID);
+typedef ATOM (WINAPI* FnRegisterClassA)(const WNDCLASSA *);
+typedef HWND (WINAPI* FnCreateWindowExA)(DWORD,LPCSTR,LPCSTR,DWORD,int,int,int,int,HWND,HMENU,HINSTANCE,LPVOID);
 typedef BOOL (WINAPI* FnGetMessageA)(LPMSG,HWND,UINT,UINT);
-typedef int (WINAPI* FnGetWindowTextA)(HWND,LPTSTR,int);
-typedef int (WINAPI* FnMessageBoxA)(HWND,LPCTSTR,LPCTSTR,UINT);
+typedef int (WINAPI* FnGetWindowTextA)(HWND,LPCSTR,int);
+typedef int (WINAPI* FnMessageBoxA)(HWND,LPCSTR,LPCSTR,UINT);
 typedef LRESULT (WINAPI* FnDefWindowProcA)(HWND,UINT,WPARAM,LPARAM);
+typedef LRESULT(WINAPI* FnSendMessageA)(HWND, UINT, WPARAM, LPARAM);
 
 struct APIS {
 	FnGetProcAddress GetProcAddress;
@@ -43,6 +48,7 @@ struct APIS {
 	FnGetWindowTextA GetWindowTextA;
 	FnMessageBoxA MessageBoxA;
 	FnDefWindowProcA DefWindowProcA;
+	FnSendMessageA  SendMessageA;
 };
 APIS g_APIs;
 DWORD g_ImageBase;
@@ -53,6 +59,7 @@ void FixIAT();
 void FixReloc();
 
 DWORD AsmStrcmp(char* src, char* dest, DWORD len);
+DWORD AsmStrlen(char* src);
 extern "C"
 {
 	_declspec(dllexport) StubConf  g_conf;
@@ -62,9 +69,9 @@ extern "C"
 			//获取api
 			GetApis();
 			g_ImageBase = (DWORD)g_APIs.GetModuleHandleA(NULL);//获取基址, FixIAT需要使用
-
-			//解密
-			Decrypt();
+			//密码弹框-验证-解密
+			SDK();
+			//Decrypt();
 
 			//重定位
 			//FixReloc();
@@ -148,6 +155,9 @@ void GetApis()
 	g_APIs.ShowWindow = (FnShowWindow)g_APIs.GetProcAddress(hUser32, "ShowWindow");
 	g_APIs.TranslateMessage	= (FnTranslateMessage)g_APIs.GetProcAddress(hUser32, "TranslateMessage");
 	g_APIs.MessageBoxA = (FnMessageBoxA)g_APIs.GetProcAddress(hUser32, "MessageBoxA");
+	g_APIs.SendMessageA = (FnSendMessageA)g_APIs.GetProcAddress(hUser32, "SendMessageA");
+
+
 }
 
 void FixIAT()
@@ -210,6 +220,26 @@ DWORD AsmStrcmp(char* src, char* dest, DWORD len)
 	}
 }
 
+DWORD AsmStrlen(char* src) 
+{
+	__asm {
+		push ecx
+		push esi
+		mov ecx, 0
+		mov esi, src
+	tag_loop:
+		cmp byte ptr [esi], 0
+		je tag_end
+		add ecx, 1
+		add esi, 1
+		jmp tag_loop
+	tag_end:
+		mov eax, ecx
+		pop esi
+		pop ecx
+
+	}
+}
 
 
 void FixReloc()
@@ -291,4 +321,105 @@ void Decrypt()
 
 }
 
+
+/***************密码弹框********************/
+
+HWND g_hBtn;
+HWND g_hPwd;
+char chPwd[10] = { 0 };//用于接收Edit中字符串
+
+
+
+void SDK()
+{
+	HINSTANCE  hInstance = g_APIs.GetModuleHandleA(NULL);
+	// 创建窗口的过程
+	// 1. 注册窗口类
+	// 2. 根据窗口类创建窗口
+	// 3. 消息循环
+	WNDCLASSA wndMain = {};
+	// 下面两个是必须的
+	wndMain.lpszClassName = "mainClass"; //父类
+										 // 所有通过父类创建的窗口,他们的消息回调函数都是WindowProc
+	wndMain.lpfnWndProc = WndProc;
+	// 设置窗口背景色
+	wndMain.hbrBackground = (HBRUSH)(COLOR_INACTIVECAPTION);
+	// 注册窗口
+	if (!g_APIs.RegisterClassA(&wndMain))
+	{
+		hInstance = 0;
+	}
+	HWND hWnd = g_APIs.CreateWindowExA(0,
+		"mainClass",// 窗口类名
+		"Note",// 窗口名
+		WS_OVERLAPPEDWINDOW,// 窗口风格,个性话定义
+		300, 100,// 窗口的起始位置
+		500, 300,// 窗口的宽高
+		NULL,// 父窗口
+		NULL,// 菜单句柄
+		hInstance,// 实例句柄
+		NULL);// 附加信息
+	g_APIs.ShowWindow(hWnd, SW_SHOW);
+	// 消息循环
+	MSG msg = {};
+	// 接收消息,分发给不同的窗口
+	while (g_APIs.GetMessageA(&msg, NULL, NULL, NULL))
+	{
+		g_APIs.TranslateMessage(&msg);
+		// 把不同窗口的消息分发给对应的回调函数->WindowProc
+		g_APIs.DispatchMessageA(&msg);
+	}
+}
+
+
+// 窗口处理过程
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	HINSTANCE  hInstance = (HINSTANCE)g_ImageBase;
+
+	switch (message)
+	{
+	case WM_CREATE:
+	{
+		//创建密码输入框
+		g_hPwd = g_APIs.CreateWindowExA(0,"edit", "password", WS_CHILD | WS_VISIBLE, 10, 10, 100, 20, hWnd, (HMENU)0x1000, hInstance, NULL);
+		g_APIs.ShowWindow(g_hPwd, SW_SHOW);
+		g_hBtn = g_APIs.CreateWindowExA(0,"button", "submit", WS_CHILD | WS_VISIBLE, 10, 50, 100, 20, hWnd, (HMENU)0x2000, hInstance, NULL);
+		g_APIs.ShowWindow(g_hBtn, SW_SHOW);
+
+	} break;
+	case WM_COMMAND:
+	{
+		WORD wHight = HIWORD(wParam);
+		WORD wLow = LOWORD(wParam);
+		switch (wLow)
+		{
+		case 0x2000:
+			g_APIs.GetWindowTextA(g_hPwd, chPwd, 10);
+			DWORD len = AsmStrlen(chPwd);
+			DWORD keyLen = AsmStrlen(g_conf.szKey);
+			if (len == 0) {
+				g_APIs.MessageBoxA(0, "must not empty !", 0, 0);
+			}
+			else if(AsmStrcmp(chPwd, g_conf.szKey,keyLen + 1) == 0) {
+
+				g_APIs.MessageBoxA(0, "right", 0, MB_OK);
+				//关闭密码窗口, 解密
+				//解密
+				Decrypt();
+				g_APIs.SendMessageA(hWnd, WM_CLOSE, NULL, NULL);
+				g_APIs.PostQuitMessage(0);
+			}
+			else {
+				g_APIs.MessageBoxA(0, "wrong", 0, 0);
+			}
+			break;
+		}
+	}
+	break;
+	default:
+		return g_APIs.DefWindowProcA(hWnd, message, wParam, lParam);
+	}
+	return (LRESULT)0;
+}
 

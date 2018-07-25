@@ -46,7 +46,9 @@ int _tmain(int argc, _TCHAR argv[])
 	stubConf->dwOEP = pExeInfo->m_pOptionalHeader->AddressOfEntryPoint;  // 保存exe的原始OEP
 	//	 修改exe的OEP, 指向start函数
 	pExeInfo->m_pOptionalHeader->AddressOfEntryPoint = dwStubStartRVA;
-
+	//加密密码
+	printf("请输入密码 > ");
+	scanf_s("%s", stubConf->szKey, 16);
 
 	//保存exe的数据目录表到stubConf
 	memcpy_s(stubConf->dataDir,sizeof(IMAGE_DATA_DIRECTORY)*16, pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);

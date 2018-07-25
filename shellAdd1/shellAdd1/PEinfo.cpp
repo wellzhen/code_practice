@@ -191,8 +191,7 @@ BOOL CPEinfo::AddNewSection(char* chNewName, DWORD dwNewRawDataSize)
 
 void CPEinfo::Encrypt(StubConf* pStubConf)
 {
-	printf("请输入密码 > ");
-	scanf_s("%s", pStubConf->szKey, 16);
+
 
 	DWORD dwSectionCount = m_pFileHeader->NumberOfSections - 1; //不加密最后一个区段
 	for (DWORD i = 0; i < dwSectionCount; i++) {
