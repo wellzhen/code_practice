@@ -60,6 +60,8 @@ int _tmain(int argc, _TCHAR argv[])
 	// 将exe的数据目录清空
 	ZeroMemory(pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);
 
+	//加密
+	pExeInfo->Encrypt(stubConf);
 	//写入文件
 	memcpy_s(pExeInfo->m_szNewFilePath + strlen(pExeInfo->m_szNewFilePath) - 4, 255, "_.exe", 5);
 	HANDLE hNewFile = CreateFileA(pExeInfo->m_szNewFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
@@ -108,3 +110,4 @@ BOOL FixStubReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
 
 	return TRUE;
 }
+

@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include "../stub/stubconf.h"
 
 class CPEinfo
 {
@@ -14,7 +15,7 @@ public:
 	BOOL Analyze(char* buffer);
 	IMAGE_SECTION_HEADER* GetSectionByName(char* name);
 	BOOL AddNewSection(char* chNewName, DWORD dwNewRawDataSize);
-
+	void Encrypt(StubConf* pStubConf);
 public: 
 	char  m_szNewFilePath[255] = { 0 };
 	DWORD m_FileSize;

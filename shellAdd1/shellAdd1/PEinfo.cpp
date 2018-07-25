@@ -187,3 +187,31 @@ BOOL CPEinfo::AddNewSection(char* chNewName, DWORD dwNewRawDataSize)
 	return TRUE;
 
 }
+
+
+void CPEinfo::Encrypt(StubConf* pStubConf)
+{
+	printf("请输入密码 > ");
+	scanf_s("%s", pStubConf->szKey, 16);
+
+	DWORD dwSectionCount = m_pFileHeader->NumberOfSections - 1; //不加密最后一个区段
+	for (DWORD i = 0; i < dwSectionCount; i++) {
+		IMAGE_SECTION_HEADER* pSection = m_pSectionHeader0 + i;
+		DWORD dwSectionVA = pSection->PointerToRawData + m_dwBufferBase;
+		DWORD dwSectionLength = pSection->Misc.VirtualSize;
+		DWORD dwOldProtect;
+		char * name = (char*)pSection->Name;
+		if (strcmp(name, ".text") != 0) {
+			continue;
+		}
+		if (pSection->SizeOfRawData == 0) {
+			continue;
+		}
+		VirtualProtect((char*)dwSectionVA, dwSectionLength, PAGE_READWRITE, &dwOldProtect);
+		for (DWORD j = 0; j < dwSectionLength; j++) {
+			*((char*)dwSectionVA + j) ^= 0x15;
+		}
+		VirtualProtect((char*)dwSectionVA, dwSectionLength, dwOldProtect, &dwOldProtect);
+	}
+
+}
