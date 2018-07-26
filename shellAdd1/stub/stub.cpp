@@ -55,7 +55,7 @@ DWORD g_ImageBase;
 
 void Decrypt();
 void GetApis();
-void FixIAT();
+void FillIAT();
 void FixReloc();
 
 DWORD AsmStrcmp(char* src, char* dest, DWORD len);
@@ -71,13 +71,12 @@ extern "C"
 			g_ImageBase = (DWORD)g_APIs.GetModuleHandleA(NULL);//获取基址, FixIAT需要使用
 			//密码弹框-验证-解密
 			SDK();
-			//Decrypt();
 
-			//重定位
-			//FixReloc();
+			//修复重定位
+			FixReloc();
 			
-
-			FixIAT();
+			//填充IAT
+			FillIAT();
 			_asm {
 				add esi, 1
 				add esi, 1
@@ -160,7 +159,7 @@ void GetApis()
 
 }
 
-void FixIAT()
+void FillIAT()
 {
 	//依据exe的数据目录表修复IAT表, 
 	IMAGE_DATA_DIRECTORY* pDataDir = g_conf.dataDir;

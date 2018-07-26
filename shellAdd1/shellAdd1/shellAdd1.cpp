@@ -5,7 +5,9 @@
 #include "PEinfo.h"
 #include "../stub/stubconf.h"
 
-BOOL FixStubReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo);
+//修复stub的重定位表的virtualAddress;
+void FixStubRelocRVA(CPEinfo* pStubInfo, CPEinfo* pExeInfo);
+BOOL FixStubTextReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo);
 
 int _tmain(int argc, _TCHAR argv[])
 {
@@ -32,7 +34,7 @@ int _tmain(int argc, _TCHAR argv[])
 	}
 
 	//修复Stub的.text段的重定位(重定位基址和区段RVA)
-	FixStubReloc(pStubInfo, pExeInfo);
+	FixStubTextReloc(pStubInfo, pExeInfo);
 
 	//重定位导出函数start的RVA: star函数要作为exe的新OEP
 	DWORD dwStubStartRVA = (DWORD)GetProcAddress((HMODULE)pStubInfo->m_dwBufferBase, "start") - pStubInfo->m_dwBufferBase; //GetProcAddress()求出的是VA,不是RVA
@@ -57,14 +59,19 @@ int _tmain(int argc, _TCHAR argv[])
 	memcpy_s((char*)(pExeLastSection->PointerToRawData + pExeInfo->m_dwBufferBase), pStubTextSectionHeader->SizeOfRawData,
 			(char*)(pStubTextSectionHeader->VirtualAddress + pStubInfo->m_dwBufferBase), pStubTextSectionHeader->SizeOfRawData);
 
-	//新的文件大小: 用于保存文件
-	DWORD dwNewFileSize = pExeLastSection->PointerToRawData + pStubTextSectionHeader->SizeOfRawData;
+	
 	// 将exe的数据目录清空
 	ZeroMemory(pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);
 
 	//加密
 	pExeInfo->Encrypt(stubConf);
+
+	//修复并拷贝stub的重定位表, 并新建了新的区段
+	FixStubRelocRVA(pStubInfo, pExeInfo);
+	pExeLastSection++;
+	//新的文件大小: 用于保存文件
 	//写入文件
+	DWORD dwNewFileSize = pExeLastSection->PointerToRawData + pStubTextSectionHeader->SizeOfRawData;
 	memcpy_s(pExeInfo->m_szNewFilePath + strlen(pExeInfo->m_szNewFilePath) - 4, 255, "_.exe", 5);
 	HANDLE hNewFile = CreateFileA(pExeInfo->m_szNewFilePath, GENERIC_ALL, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 	WriteFile(hNewFile, (char*)pExeInfo->m_dwBufferBase, dwNewFileSize, NULL, NULL);
@@ -72,7 +79,57 @@ int _tmain(int argc, _TCHAR argv[])
     return 0;
 }
 
-BOOL FixStubReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
+//支持随机基址: 修改.reloc区段的VirtualAddress信息
+void FixStubRelocRVA(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
+{
+	//exe
+	IMAGE_SECTION_HEADER* pExeLastSection = pExeInfo->m_pSectionHeader0 + pExeInfo->m_pFileHeader->NumberOfSections - 1;
+	DWORD dwNewSectionRVA = pExeLastSection->VirtualAddress;
+	//stub
+	IMAGE_DATA_DIRECTORY RelocTableDir = pStubInfo->m_pOptionalHeader->DataDirectory[5];
+	DWORD dwRelocSectionSize = RelocTableDir.Size;
+	DWORD dwRelocVA = RelocTableDir.VirtualAddress + pStubInfo->m_dwBufferBase;
+	IMAGE_BASE_RELOCATION* pBaseReloc = (IMAGE_BASE_RELOCATION*)dwRelocVA;
+	//遍历所有重定位块, 属于代码段的RVA 则修改为对应exe的RVA
+	DWORD dwTextRVAmin = pStubInfo->GetSectionByName(".text")->VirtualAddress;
+	DWORD dwTextRVAmax = dwTextRVAmin + pStubInfo->GetSectionByName(".text")->Misc.VirtualSize;
+	char* dwCopyAddrStart = (char*)pBaseReloc;
+	char* dwCopyAddrEnd = 0;
+	while(pBaseReloc->SizeOfBlock != 0) {
+		//判断是否属于text段的
+		DWORD dwRelocRVA = pBaseReloc->VirtualAddress;
+		if (dwRelocRVA > dwTextRVAmin && dwRelocRVA < dwTextRVAmax) {
+			DWORD dwOldProtect;
+			VirtualProtect((char*)pBaseReloc, 8, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+			pBaseReloc->VirtualAddress -= dwTextRVAmin;
+			DWORD dwExeEndRVA = pExeLastSection->VirtualAddress + pExeLastSection->Misc.VirtualSize;
+			pBaseReloc->VirtualAddress += dwExeEndRVA;
+			VirtualProtect((char*)pBaseReloc, 8, dwOldProtect, &dwOldProtect);
+		}
+		else {//不在代码段了
+			dwCopyAddrEnd = (char*)pBaseReloc; // 多一个字节
+			break;
+		}
+		pBaseReloc = (IMAGE_BASE_RELOCATION*)((DWORD)pBaseReloc + pBaseReloc->SizeOfBlock);
+	}
+
+	// exe创建一个新的区段stubRel 
+	// 先修改m_FileSize 属性 
+	pExeInfo->m_FileSize += pExeLastSection->SizeOfRawData; 
+	DWORD dwRelocFSize = pStubInfo->GetSectionByName(".reloc")->SizeOfRawData;
+	pExeInfo->AddNewSection("stubRel", dwRelocFSize);
+	//把.reloc的信息拷贝进去
+	pExeLastSection++;
+	char* destAddr = (char*)(pExeLastSection->PointerToRawData + pExeInfo->m_dwBufferBase);
+	char* srcAddr = (char*)(pStubInfo->GetSectionByName(".reloc")->VirtualAddress + pStubInfo->m_dwBufferBase);
+	DWORD copyLength = (DWORD)dwCopyAddrEnd - (DWORD)dwCopyAddrStart;
+	memcpy_s(destAddr, copyLength, srcAddr, copyLength);
+	//修改重定位表目录的RVA和Size
+	pExeInfo->m_pOptionalHeader->DataDirectory[5].VirtualAddress = pExeLastSection->VirtualAddress;
+	pExeInfo->m_pOptionalHeader->DataDirectory[5].Size = copyLength;
+}
+
+BOOL FixStubTextReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
 {
 	//Stub重定位表
 	IMAGE_DATA_DIRECTORY RelocTableDir = pStubInfo->m_pOptionalHeader->DataDirectory[5];
@@ -112,4 +169,6 @@ BOOL FixStubReloc(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
 
 	return TRUE;
 }
+
+
 

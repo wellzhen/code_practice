@@ -5,7 +5,7 @@
 CPEinfo::CPEinfo(char* szFile, BOOL isExe)
 {
 	//加载文件到内存
-	m_dwBufferExtraSize = 0x100000; //适当修改
+	m_dwBufferExtraSize = 0x100000 * 2; //适当修改
 	char* Buffer;
 	if (isExe) {
 		Buffer = Open(szFile);
@@ -187,6 +187,7 @@ BOOL CPEinfo::AddNewSection(char* chNewName, DWORD dwNewRawDataSize)
 	return TRUE;
 
 }
+
 
 
 void CPEinfo::Encrypt(StubConf* pStubConf)
