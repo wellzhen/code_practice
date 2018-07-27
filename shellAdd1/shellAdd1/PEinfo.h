@@ -16,6 +16,7 @@ public:
 	IMAGE_SECTION_HEADER* GetSectionByName(char* name);
 	BOOL AddNewSection(char* chNewName, DWORD dwNewRawDataSize);
 	void Encrypt(StubConf* pStubConf);
+	DWORD RVA2FOA(DWORD dwRVA);
 public: 
 	char  m_szNewFilePath[255] = { 0 };
 	DWORD m_FileSize;

@@ -57,6 +57,7 @@ void Decrypt();
 void GetApis();
 void FillIAT();
 void FixReloc();
+void callTLS();
 
 DWORD AsmStrcmp(char* src, char* dest, DWORD len);
 DWORD AsmStrlen(char* src);
@@ -84,7 +85,7 @@ extern "C"
 				sub esi, 1
 			}
 			
-		
+			callTLS();
 
 			g_conf.dwOEP += g_ImageBase;
 			_asm {
@@ -422,3 +423,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return (LRESULT)0;
 }
 
+void callTLS()
+{
+	DWORD i = 0; 
+	while (g_conf.dwTlsCallBackValue[i] != 0) {
+		PIMAGE_TLS_CALLBACK* pTlsFun = (PIMAGE_TLS_CALLBACK*)(g_conf.dwTlsCallBackValue[i]);
+		(*pTlsFun)((PVOID)g_ImageBase, DLL_PROCESS_ATTACH, NULL);
+		g_APIs.MessageBoxA(NULL, "tls", "tls", MB_OK);
+		i++;
+	}
+
+	
+}

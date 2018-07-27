@@ -215,3 +215,16 @@ void CPEinfo::Encrypt(StubConf* pStubConf)
 	}
 
 }
+DWORD CPEinfo::RVA2FOA(DWORD dwRVA)
+{
+	BOOL hasFind = FALSE;
+	for (DWORD i = 0; i < m_pFileHeader->NumberOfSections; i++) {
+		if (dwRVA >= m_pSectionHeader0[i].VirtualAddress
+			&& dwRVA < m_pSectionHeader0[i].VirtualAddress + m_pSectionHeader0[i].Misc.VirtualSize)
+		{
+			hasFind = 0;
+			return dwRVA - m_pSectionHeader0[i].VirtualAddress + m_pSectionHeader0[i].PointerToRawData;
+		}
+	}
+	return 0;
+}

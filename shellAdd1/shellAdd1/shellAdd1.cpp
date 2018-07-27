@@ -48,6 +48,7 @@ int _tmain(int argc, _TCHAR argv[])
 	stubConf->dwOEP = pExeInfo->m_pOptionalHeader->AddressOfEntryPoint;  // 保存exe的原始OEP
 	//	 修改exe的OEP, 指向start函数
 	pExeInfo->m_pOptionalHeader->AddressOfEntryPoint = dwStubStartRVA;
+
 	//加密密码
 	printf("请输入密码 > ");
 	scanf_s("%s", stubConf->szKey, 16);
@@ -61,7 +62,48 @@ int _tmain(int argc, _TCHAR argv[])
 
 	
 	// 将exe的数据目录清空
-	ZeroMemory(pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);
+	//	1. 保存TLS
+	DWORD dwTlsRVA = pExeInfo->m_pOptionalHeader->DataDirectory[9].VirtualAddress;
+	DWORD dwTlsSize = pExeInfo->m_pOptionalHeader->DataDirectory[9].Size;
+	if (dwTlsRVA != 0) {
+		//	2. 清空
+		ZeroMemory(pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);
+		//	3. 恢复TLS数据目录
+		pExeInfo->m_pOptionalHeader->DataDirectory[9].VirtualAddress = dwTlsRVA;
+		pExeInfo->m_pOptionalHeader->DataDirectory[9].Size = dwTlsSize;
+		//	4. 转换成FOA
+		DWORD dwTlsFOA = pExeInfo->RVA2FOA(dwTlsRVA);
+		if (dwTlsFOA == 0) {
+			MessageBoxA(NULL, "无法转换成FOA", "note", MB_OK);
+			return 0;
+		}
+		//  4. 清除TLS的回调函数表: 
+		IMAGE_TLS_DIRECTORY* pTlsDir = (IMAGE_TLS_DIRECTORY*)(dwTlsFOA+ pExeInfo->m_dwBufferBase);
+		DWORD dwAddrOfCallBackRVA = (pTlsDir->AddressOfCallBacks - pExeInfo->m_pOptionalHeader->ImageBase);
+		DWORD dwAddrOfCallBackFOA = pExeInfo->RVA2FOA(dwAddrOfCallBackRVA);
+		DWORD* pCallBack = (DWORD*)(dwAddrOfCallBackFOA+pExeInfo->m_dwBufferBase);
+		DWORD index = 0;
+		while (*pCallBack != 0) {
+			//保存
+			stubConf->dwTlsCallBackValue[index] = *pCallBack;
+			//清除
+			DWORD dwOldProtect;
+			VirtualProtect((char*)pCallBack, 4, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+			*pCallBack = 0;
+			VirtualProtect((char*)pCallBack, 4, dwOldProtect, &dwOldProtect);
+
+			pCallBack++;
+			index++;
+
+		}
+
+		
+	}
+	else {
+		ZeroMemory(pExeInfo->m_pOptionalHeader->DataDirectory, sizeof(IMAGE_DATA_DIRECTORY) * 16);
+	}
+
+
 
 	//加密
 	pExeInfo->Encrypt(stubConf);
