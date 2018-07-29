@@ -208,8 +208,10 @@ void CPEinfo::Encrypt(StubConf* pStubConf)
 			continue;
 		}
 		VirtualProtect((char*)dwSectionVA, dwSectionLength, PAGE_READWRITE, &dwOldProtect);
+		DWORD userPwdLen = strlen(pStubConf->szKey);
 		for (DWORD j = 0; j < dwSectionLength; j++) {
-			*((char*)dwSectionVA + j) ^= 0x15;
+			*((char*)dwSectionVA + j) ^= pStubConf->szKey[j % userPwdLen];
+			*((char*)dwSectionVA + j) = ~*((char*)dwSectionVA + j) ;
 		}
 		VirtualProtect((char*)dwSectionVA, dwSectionLength, dwOldProtect, &dwOldProtect);
 	}

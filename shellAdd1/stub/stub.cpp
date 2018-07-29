@@ -31,6 +31,9 @@ typedef int (WINAPI* FnMessageBoxA)(HWND,LPCSTR,LPCSTR,UINT);
 typedef LRESULT (WINAPI* FnDefWindowProcA)(HWND,UINT,WPARAM,LPARAM);
 typedef LRESULT(WINAPI* FnSendMessageA)(HWND, UINT, WPARAM, LPARAM);
 
+typedef HWND (WINAPI* FnFindWindowA)(LPCSTR,	LPCSTR );
+typedef  VOID (WINAPI* FnExitProcess)(UINT);
+
 struct APIS {
 	FnGetProcAddress GetProcAddress;
 	FnLoadLibraryA	 LoadLibraryA;
@@ -49,6 +52,8 @@ struct APIS {
 	FnMessageBoxA MessageBoxA;
 	FnDefWindowProcA DefWindowProcA;
 	FnSendMessageA  SendMessageA;
+	FnFindWindowA   FindWindowA;
+	FnExitProcess   ExitProcess;
 };
 APIS g_APIs;
 DWORD g_ImageBase;
@@ -58,6 +63,7 @@ void GetApis();
 void FillIAT();
 void FixReloc();
 void callTLS();
+BOOL isDbg();
 
 DWORD AsmStrcmp(char* src, char* dest, DWORD len);
 DWORD AsmStrlen(char* src);
@@ -67,6 +73,16 @@ extern "C"
 	_declspec(dllexport) DWORD g_oep = 0x11223344;
 	_declspec(dllexport) 
 		void _declspec(naked) start() {
+		_asm
+		{
+			jmp tag_noise
+			_EMIT 0x1  //花指令
+			_EMIT 0x2
+			_EMIT 0x3
+			_EMIT 0x4
+			tag_noise:
+			
+		}
 			//获取api
 			GetApis();
 			g_ImageBase = (DWORD)g_APIs.GetModuleHandleA(NULL);//获取基址, FixIAT需要使用
@@ -86,7 +102,10 @@ extern "C"
 			}
 			
 			callTLS();
-
+			
+			if (isDbg()) { //检测是否被调试
+				g_APIs.ExitProcess(0);
+			}
 			g_conf.dwOEP += g_ImageBase;
 			_asm {
 				jmp g_conf.dwOEP
@@ -144,6 +163,8 @@ void GetApis()
 	g_APIs.LoadLibraryA = (FnLoadLibraryA)g_APIs.GetProcAddress(hKernel32, "LoadLibraryA");
 	g_APIs.VirtualAlloc = (FnVirtualAlloc)g_APIs.GetProcAddress(hKernel32, "VirtualAlloc");
 	g_APIs.VirtualProtect = (FnVirtualProtect)g_APIs.GetProcAddress(hKernel32, "VirtualProtect");
+	g_APIs.ExitProcess = (FnExitProcess)g_APIs.GetProcAddress(hKernel32, "ExitProcess");
+
 	hUser32 = g_APIs.LoadLibraryA("user32.dll");
 	g_APIs.CreateWindowExA = (FnCreateWindowExA)g_APIs.GetProcAddress(hUser32, "CreateWindowExA");//
 	g_APIs.DefWindowProcA = (FnDefWindowProcA)g_APIs.GetProcAddress(hUser32, "DefWindowProcA");//
@@ -156,6 +177,7 @@ void GetApis()
 	g_APIs.TranslateMessage	= (FnTranslateMessage)g_APIs.GetProcAddress(hUser32, "TranslateMessage");
 	g_APIs.MessageBoxA = (FnMessageBoxA)g_APIs.GetProcAddress(hUser32, "MessageBoxA");
 	g_APIs.SendMessageA = (FnSendMessageA)g_APIs.GetProcAddress(hUser32, "SendMessageA");
+	g_APIs.FindWindowA = (FnFindWindowA)g_APIs.GetProcAddress(hUser32, "FindWindowA");
 
 
 }
@@ -184,11 +206,19 @@ void FillIAT()
 			else {//序号导入
 				chName = (char*)(pINT->u1.Ordinal & 0xFFFF);
 			}
-			DWORD funcVA = (DWORD)g_APIs.GetProcAddress(hDll, chName);
+			DWORD funcVA = (DWORD)g_APIs.GetProcAddress(hDll, chName);//真正的函数地址
+			//申请空间, 构造花指令
+			char* pNoiseAddr = (char*)g_APIs.VirtualAlloc(NULL, 1, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+			*(DWORD*)pNoiseAddr = 0x46464646; // inc esi
+			*(DWORD*)(pNoiseAddr + 4) = 0x4E4E4E4E; // dec esi
+			pNoiseAddr[8] = 0xE9;
+			*(DWORD*)(pNoiseAddr + 9) = funcVA - (DWORD)pNoiseAddr - 8 - 5;
+
 			//写入IAT表
 			DWORD oldProt;
 			g_APIs.VirtualProtect(pIAT, 4, PAGE_EXECUTE_READWRITE, &oldProt);
-			*pIAT = funcVA;
+			//*pIAT = funcVA;
+			*pIAT = (DWORD)pNoiseAddr;
 			g_APIs.VirtualProtect(pIAT, 4, oldProt, &oldProt);
 			pIAT++;
 			pINT++;
@@ -313,8 +343,10 @@ void Decrypt()
 			continue;
 		}
 		g_APIs.VirtualProtect((char*)dwSectionVA, dwSectionLength, PAGE_READWRITE, &dwOldProtect);
+		DWORD userPwdLen = AsmStrlen(g_conf.szKey);
 		for (DWORD j = 0; j < dwSectionLength; j++) {
-			*((char*)dwSectionVA + j) ^= 0x15;
+			*((char*)dwSectionVA + j) = ~*((char*)dwSectionVA + j);
+			*((char*)dwSectionVA + j) ^= g_conf.szKey[j %userPwdLen];
 		}
 		g_APIs.VirtualProtect((char*)dwSectionVA, dwSectionLength, dwOldProtect, &dwOldProtect);
 	}
@@ -351,10 +383,10 @@ void SDK()
 	}
 	HWND hWnd = g_APIs.CreateWindowExA(0,
 		"mainClass",// 窗口类名
-		"Note",// 窗口名
+		"请输入密码",// 窗口名
 		WS_OVERLAPPEDWINDOW,// 窗口风格,个性话定义
 		300, 100,// 窗口的起始位置
-		500, 300,// 窗口的宽高
+		300, 150,// 窗口的宽高
 		NULL,// 父窗口
 		NULL,// 菜单句柄
 		hInstance,// 实例句柄
@@ -382,9 +414,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 	{
 		//创建密码输入框
-		g_hPwd = g_APIs.CreateWindowExA(0,"edit", "password", WS_CHILD | WS_VISIBLE, 10, 10, 100, 20, hWnd, (HMENU)0x1000, hInstance, NULL);
+		g_hPwd = g_APIs.CreateWindowExA(0,"edit", "password", WS_CHILD | WS_VISIBLE, 100, 10, 100, 20, hWnd, (HMENU)0x1000, hInstance, NULL);
 		g_APIs.ShowWindow(g_hPwd, SW_SHOW);
-		g_hBtn = g_APIs.CreateWindowExA(0,"button", "submit", WS_CHILD | WS_VISIBLE, 10, 50, 100, 20, hWnd, (HMENU)0x2000, hInstance, NULL);
+		g_hBtn = g_APIs.CreateWindowExA(0,"button", "submit", WS_CHILD | WS_VISIBLE, 100, 50, 100, 20, hWnd, (HMENU)0x2000, hInstance, NULL);
 		g_APIs.ShowWindow(g_hBtn, SW_SHOW);
 
 	} break;
@@ -403,7 +435,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else if(AsmStrcmp(chPwd, g_conf.szKey,keyLen + 1) == 0) {
 
-				g_APIs.MessageBoxA(0, "right", 0, MB_OK);
+				g_APIs.MessageBoxA(0, "开始运行", "密码正确", MB_OK);
 				//关闭密码窗口, 解密
 				//解密
 				Decrypt();
@@ -427,11 +459,23 @@ void callTLS()
 {
 	DWORD i = 0; 
 	while (g_conf.dwTlsCallBackValue[i] != 0) {
-		PIMAGE_TLS_CALLBACK* pTlsFun = (PIMAGE_TLS_CALLBACK*)(g_conf.dwTlsCallBackValue[i]);
+		PIMAGE_TLS_CALLBACK* pTlsFun = (PIMAGE_TLS_CALLBACK*)(g_conf.dwTlsCallBackValue[i] - 0x400000 + g_ImageBase);
 		(*pTlsFun)((PVOID)g_ImageBase, DLL_PROCESS_ATTACH, NULL);
 		g_APIs.MessageBoxA(NULL, "tls", "tls", MB_OK);
 		i++;
 	}
+}
 
-	
+
+BOOL isDbg()
+{
+	HWND ret1 = g_APIs.FindWindowA(NULL, "x32_dbg");
+	HWND ret2 = g_APIs.FindWindowA(NULL, "吾愛破解 - [LCG]");
+	if (ret1 != NULL || ret2 != NULL)
+	{
+		g_APIs.MessageBoxA(NULL, "正在被调试, 程序即将退出", "警告", MB_OK);
+		return TRUE;
+	}
+
+	return FALSE;
 }

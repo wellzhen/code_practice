@@ -144,8 +144,8 @@ void FixStubRelocRVA(CPEinfo* pStubInfo, CPEinfo* pExeInfo)
 			DWORD dwOldProtect;
 			VirtualProtect((char*)pBaseReloc, 8, PAGE_EXECUTE_READWRITE, &dwOldProtect);
 			pBaseReloc->VirtualAddress -= dwTextRVAmin;
-			DWORD dwExeEndRVA = pExeLastSection->VirtualAddress + pExeLastSection->Misc.VirtualSize;
-			pBaseReloc->VirtualAddress += dwExeEndRVA;
+			//DWORD dwExeEndRVA = pExeLastSection->VirtualAddress + pExeLastSection->Misc.VirtualSize;
+			pBaseReloc->VirtualAddress += pExeLastSection->VirtualAddress;
 			VirtualProtect((char*)pBaseReloc, 8, dwOldProtect, &dwOldProtect);
 		}
 		else {//不在代码段了
